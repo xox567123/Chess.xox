@@ -31,7 +31,7 @@
     [hidden] { display: none !important; }
     .game { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 20px; align-items: center; min-width: 0; }
     .board-wrap { width: min(100%, 700px, calc(100dvh - 170px)); aspect-ratio: 1; margin: 0 auto; min-width: 0; }
-    .board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr)); overflow: hidden; border: clamp(3px, .7vw, 5px) solid #314550; border-radius: 8px; user-select: none; }
+    .board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr)); overflow: hidden; border: clamp(3px, .7vw, 5px) solid #dbe7dd; border-radius: 8px; box-shadow: 0 16px 42px #0005; }
     .square { min-width: 0; min-height: 0; position: relative; display: grid; place-items: center; padding: 0; border: 0; cursor: pointer; font-size: clamp(1rem, min(5vw, 6vh), 4rem); line-height: 1; }
     .light { background: #e7e5d6; color: #15191b; }
     .dark { background: #65917c; color: #15191b; }
@@ -86,7 +86,7 @@
       <p class="hint">Create a game as White, or join a friend's game as Black with their code. New players start at 800 Elo.</p>
       <label for="clock-setting">Choose the clock (both players get the same time)</label>
       <select id="clock-setting">
-        <option value="60">1 minute</option><option value="180">3 minutes</option><option value="300" selected>5 minutes</option><option value="600">10 minutes</option><option value="900">15 minutes</option><option value="1800">30 minutes</option>
+        <option value="60">1 minute</option><option value="180">3 minutes</option><option value="300" selected>5 minutes</option><option value="600">10 minutes</option><option value="900">15 minutes</option><option value="1800">30 minutes</option><option value="3600">60 minutes</option>
       </select>
       <div class="actions">
         <button id="create" class="button primary">Create game</button>
@@ -131,7 +131,7 @@
       const lastResult = document.getElementById('last-result');
       const unicode = {
         white: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
-        black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
+        black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♙' }
       };
       let socket = null;
       let mySide = null;
@@ -299,7 +299,7 @@
           if (!result || !result.ok) showStatus(result && result.error ? result.error : 'Could not create a game. Please try again.');
           else {
             mySide = result.side;
-            gameState = { code: result.code, side: result.side, pieces: [], legalMoves: [], turn: 'white', clockSeconds: result.clockSeconds, clocksMs: { white: result.clockSeconds * 1000, black: result.clockSeconds * 1000 }, clockRunning: false };
+            gameState = { code: result.code, side: result.side, pieces: [], legalMoves: [], turn: 'white', clockSeconds: result.clockSeconds, clocksMs: { white: result.clockSeconds * 1000, black: result.clockSeconds * 1000 }, lastMove: null, check: false, opponentConnected: false };
             clockSetting.disabled = true;
             showGame();
             document.getElementById('game-status').textContent = 'Waiting for the other player…';
