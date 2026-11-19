@@ -50,13 +50,15 @@
     [hidden] { display: none !important; }
     .game { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 18px; align-items: center; }
     .board-wrap {
-      width: min(100%, 620px, calc(100svh - 220px));
+      width: min(100%, 700px, calc(100svh - 220px));
       aspect-ratio: 1;
       margin: 0 auto;
     }
     .board {
       width: 100%; height: 100%; aspect-ratio: 1;
-      display: grid; grid-template-columns: repeat(8, minmax(0, 1fr));
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      grid-template-rows: repeat(8, minmax(0, 1fr));
       overflow: hidden; border: 5px solid #314550; border-radius: 8px; user-select: none;
     }
     .square { min-width: 0; min-height: 0; position: relative; display: grid; place-items: center; padding: 0; border: 0; cursor: pointer; font-size: clamp(1.3rem, 5vw, 4rem); line-height: 1; }
@@ -82,7 +84,7 @@
       .app { margin: 0 auto; }
       .brand { margin-bottom: 12px; }
       .game { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-      .board-wrap { width: min(100%, 620px, calc(100svh - 150px)); }
+      .board-wrap { width: min(100%, 700px, calc(100svh - 150px)); }
       .side-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .side-panel .panel:nth-child(3), .side-panel #leave { grid-column: 1 / -1; }
       .square { font-size: clamp(1.25rem, 10vw, 3.8rem); }
@@ -98,7 +100,7 @@
       .brand { margin-bottom: 8px; }
       .card { padding: 12px; }
       .game { gap: 12px; }
-      .board-wrap { width: min(100%, 620px, calc(100svh - 150px)); }
+      .board-wrap { width: min(100%, 700px, calc(100svh - 150px)); }
     }
   </style>
 </head>
@@ -146,7 +148,7 @@
       const joinForm = document.getElementById('join-form');
       const unicode = {
         white: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
-        black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
+        black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♙' }
       };
       let socket = null;
       let mySide = null;
