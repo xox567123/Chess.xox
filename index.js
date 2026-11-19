@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
@@ -16,6 +17,11 @@ const rooms = new Map();
 // use a database if ratings must survive a server restart or be tamper-proof.
 const ratings = new Map();
 
+// Render black pawns using the same pawn glyph as white, colored by the existing CSS.
+app.get(['/', '/index.html'], (_req, res) => {
+  const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  res.type('html').send(html.replace("black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }", "black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♙' }"));
+});
 app.use(express.static(__dirname));
 app.get('/health', (_req, res) => res.json({ ok: true }));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -102,8 +108,11 @@ function finishGame(room, winner, reason) {
   if (winner) {
     const winnerStats = winner === 'white' ? whiteStats : blackStats;
     const loserStats = winner === 'white' ? blackStats : whiteStats;
-    winnerStats.rating += ratingChange(winnerStats.games);
-    loserStats.rating = Math.max(0, loserStats.rating - ratingChange(loserStats.games));
+    // Transfer the loser's rating change to the winner so a decisive game is zero-sum.
+    // Cap the transfer at the loser's current rating to keep ratings non-negative.
+    const points = Math.min(ratingChange(loserStats.games), loserStats.rating);
+    winnerStats.rating += points;
+    loserStats.rating -= points;
   }
   whiteStats.games += 1;
   blackStats.games += 1;
