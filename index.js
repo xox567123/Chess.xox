@@ -105,14 +105,15 @@ function finishGame(room, winner, reason) {
   const blackPlayer = room.playerIds.black;
   const whiteStats = getRating(whitePlayer);
   const blackStats = getRating(blackPlayer);
+  let ratingPoints = 0;
   if (winner) {
     const winnerStats = winner === 'white' ? whiteStats : blackStats;
     const loserStats = winner === 'white' ? blackStats : whiteStats;
-    // Transfer the loser's rating change to the winner so a decisive game is zero-sum.
-    // Cap the transfer at the loser's current rating to keep ratings non-negative.
-    const points = Math.min(ratingChange(loserStats.games), loserStats.rating);
-    winnerStats.rating += points;
-    loserStats.rating -= points;
+    // Use the loser's pre-game count to determine the loss, and award those exact
+    // points to the winner. The loser can never gain Elo from a decisive result.
+    ratingPoints = Math.min(ratingChange(loserStats.games), loserStats.rating);
+    loserStats.rating -= ratingPoints;
+    winnerStats.rating += ratingPoints;
   }
   whiteStats.games += 1;
   blackStats.games += 1;
@@ -123,15 +124,18 @@ function finishGame(room, winner, reason) {
     const id = room.players[side];
     if (!id) continue;
     const ownStats = side === 'white' ? whiteStats : blackStats;
+    const ratingDelta = !winner ? 0 : (side === winner ? ratingPoints : -ratingPoints);
+    const changeText = ratingDelta > 0 ? `+${ratingDelta}` : `${ratingDelta}`;
     const message = winner
-      ? `${winnerName} wins ${reason}. ${winnerName} Elo: ${winnerRating} · Your Elo: ${ownStats.rating}`
-      : `Draw. Your Elo: ${ownStats.rating}`;
+      ? `${winnerName} wins ${reason}. Elo change: ${changeText} · Your Elo: ${ownStats.rating}`
+      : `Draw. No Elo change · Your Elo: ${ownStats.rating}`;
     io.to(id).emit('game:over', {
       winner,
       reason,
       message,
       ownRating: ownStats.rating,
       winnerRating,
+      ratingDelta,
       gamesPlayed: ownStats.games
     });
   }
