@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <title>Chess.xox — Play chess</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #101820; color: #f3f5f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse at top, #203342, #101820 65%); }
+    button, input { font: inherit; }
+    .app { width: min(100%, 900px); }
+    .brand { text-align: center; margin-bottom: 24px; }
+    .brand h1 { margin: 0; font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -.05em; }
+    .brand p { color: #aab8c4; margin: 8px 0 0; }
+    .card { background: #182630; border: 1px solid #344653; border-radius: 18px; padding: clamp(20px, 5vw, 38px); box-shadow: 0 24px 80px #0005; }
+    .home { max-width: 560px; margin: auto; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 22px 0; }
+    .button { border: 0; border-radius: 10px; padding: 14px 18px; font-weight: 750; cursor: pointer; transition: transform .12s, filter .12s; }
+    .button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .primary { color: #10202a; background: #8be0b2; }
+    .secondary { color: #f3f5f7; background: #344957; }
+    .wide { width: 100%; }
+    label { display: block; color: #c1ccd3; font-size: .9rem; margin: 14px 0 7px; }
+    input { width: 100%; color: #f3f5f7; background: #101a21; border: 1px solid #405461; border-radius: 9px; padding: 12px; outline: none; }
+    input:focus { border-color: #8be0b2; }
+    #server-field { margin-top: 20px; }
+    .hint, .status { color: #aab8c4; font-size: .9rem; line-height: 1.5; }
+    .status { min-height: 1.5em; color: #ffcf8a; }
+    [hidden] { display: none !important; }
+    .game { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 22px; align-items: start; }
+    .board-wrap { width: 100%; max-width: 620px; margin: 0 auto; }
+    .board { width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); overflow: hidden; border: 5px solid #314550; border-radius: 8px; user-select: none; }
+    .square { position: relative; display: grid; place-items: center; cursor: pointer; aspect-ratio: 1; font-size: clamp(1.55rem, 7vw, 4.5rem); line-height: 1; }
+    .light { background: #e7e5d6; color: #15191b; }
+    .dark { background: #65917c; color: #15191b; }
+    .square.selected { box-shadow: inset 0 0 0 5px #f4d35e; }
+    .square.last { background-image: linear-gradient(#f4d35e55, #f4d35e55); }
+    .square.target::after { content: ""; position: absolute; width: 22%; height: 22%; border-radius: 50%; background: #15241d77; }
+    .square.target.has-piece::after { width: 82%; height: 82%; background: transparent; border: 5px solid #15241d77; }
+    .piece { filter: drop-shadow(0 1px 1px #0007); }
+    .black-piece { color: #121719; text-shadow: 0 1px 2px #fff8; }
+    .white-piece { color: #fff; text-shadow: 0 1px 2px #000; }
+    .side-panel { display: grid; gap: 12px; }
+    .panel { background: #101a21; border: 1px solid #344653; border-radius: 12px; padding: 16px; }
+    .panel h2 { font-size: 1rem; margin: 0 0 10px; }
+    .big { font-size: 1.2rem; font-weight: 750; }
+    .code { color: #8be0b2; font-size: 1.6rem; letter-spacing: .14em; font-weight: 850; }
+    .turn { color: #d3e1e9; }
+    .footer { margin-top: 20px; text-align: center; color: #82939f; font-size: .8rem; }
+    @media (max-width: 700px) { body { padding: 14px; } .game { grid-template-columns: 1fr; } .side-panel { grid-template-columns: 1fr 1fr; } .square { font-size: clamp(1.5rem, 10vw, 4rem); } }
+    @media (max-width: 420px) { .actions { grid-template-columns: 1fr; } .side-panel { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="brand"><h1>♟ Chess.xox</h1><p>Play a friend, wherever they are.</p></header>
+    <section id="home" class="card home">
+      <h2>Start a game</h2>
+      <p class="hint">Create a game as White, or join a friend's game as Black with their code.</p>
+      <div class="actions">
+        <button id="create" class="button primary">Create game</button>
+        <button id="show-join" class="button secondary">Join game</button>
+      </div>
+      <div id="join-form" hidden>
+        <label for="code-input">Game code</label>
+        <input id="code-input" maxlength="6" autocomplete="off" placeholder="6-character code">
+        <button id="join" class="button primary wide" style="margin-top:10px">Join as Black</button>
+      </div>
+      <div id="server-field">
+        <label for="server-input">Game server URL</label>
+        <input id="server-input" autocomplete="url" placeholder="https://your-service.onrender.com">
+        <p class="hint">When this page is hosted on Render, leave this blank. On GitHub Pages, enter your Render web service URL.</p>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="game" class="card" hidden>
+      <div class="game">
+        <div class="board-wrap"><div id="board" class="board" role="grid" aria-label="Chess board"></div></div>
+        <aside class="side-panel">
+          <div class="panel"><h2>Your color</h2><div id="my-side" class="big"></div><p id="turn" class="turn"></p></div>
+          <div class="panel"><h2>Game code</h2><div id="game-code" class="code"></div><p class="hint">Share this code with your opponent.</p></div>
+          <div class="panel"><h2>Game status</h2><p id="game-status" class="hint">Waiting for the other player…</p></div>
+          <button id="leave" class="button secondary">Back to home</button>
+        </aside>
+      </div>
+    </section>
+    <p class="footer">Legal moves are checked by the server. Kings cannot move into check.</p>
+  </main>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script>
+    (() => {
+      const home = document.getElementById('home');
+      const gameScreen = document.getElementById('game');
+      const status = document.getElementById('status');
+      const boardEl = document.getElementById('board');
+      const serverInput = document.getElementById('server-input');
+      const codeInput = document.getElementById('code-input');
+      const joinForm = document.getElementById('join-form');
+      const unicode = {
+        white: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
+        black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
+      };
+      let socket = null;
+      let mySide = null;
+      let gameState = null;
+      let selected = null;
+      let gameOverTimer = null;
+
+      if (!location.hostname.endsWith('github.io')) serverInput.value = location.origin;
+
+      function showStatus(message) { status.textContent = message || ''; }
+      function serverUrl() {
+        const value = serverInput.value.trim();
+        if (!value) return location.origin;
+        return value.replace(/\/$/, '');
+      }
+      function connect() {
+        if (typeof window.io !== 'function') {
+          showStatus('Could not load the game connection library. Refresh and try again.');
+          return null;
+        }
+        if (socket && socket.connected) return socket;
+        if (socket) socket.disconnect();
+        socket = window.io(serverUrl(), { transports: ['websocket', 'polling'] });
+        socket.on('connect_error', () => showStatus('Could not reach the game server. Check the URL and make sure your Render service is running.'));
+        socket.on('opponent:left', () => {
+          const gameStatus = document.getElementById('game-status');
+          if (gameStatus) gameStatus.textContent = 'Your opponent disconnected. They can rejoin using the game code.';
+        });
+        socket.on('game:state', state => {
+          gameState = state;
+          mySide = state.side;
+          selected = null;
+          showGame();
+          renderBoard();
+          document.getElementById('turn').textContent = state.turn === mySide ? 'Your turn' : `${capitalize(state.turn)} to move`;
+          const message = state.check ? `${capitalize(state.turn)} is in check.` : (state.opponentConnected ? 'Game in progress.' : 'Waiting for the other player…');
+          document.getElementById('game-status').textContent = message;
+        });
+        socket.on('game:over', result => {
+          document.getElementById('game-status').textContent = result.message;
+          document.getElementById('turn').textContent = 'Game over';
+          boardEl.querySelectorAll('.square').forEach(square => square.style.cursor = 'default');
+          gameOverTimer = setTimeout(() => returnHome(false), 4500);
+        });
+        return socket;
+      }
+      function capitalize(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
+      function showGame() {
+        home.hidden = true;
+        gameScreen.hidden = false;
+        document.getElementById('my-side').textContent = capitalize(mySide);
+        document.getElementById('game-code').textContent = gameState.code;
+      }
+      function renderBoard() {
+        if (!gameState) return;
+        boardEl.innerHTML = '';
+        const pieces = new Map(gameState.pieces.map(piece => [piece.square, piece]));
+        const rankOrder = mySide === 'white' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
+        const fileOrder = mySide === 'white' ? 'abcdefgh'.split('') : 'hgfedcba'.split('');
+        const targets = selected ? gameState.legalMoves.filter(move => move.from === selected).map(move => move.to) : [];
+        for (const rank of rankOrder) for (const file of fileOrder) {
+          const squareName = `${file}${rank}`;
+          const piece = pieces.get(squareName);
+          const cell = document.createElement('button');
+          cell.type = 'button';
+          cell.className = `square ${((file.charCodeAt(0) - 97 + rank) % 2 === 0) ? 'light' : 'dark'}`;
+          cell.setAttribute('role', 'gridcell');
+          cell.setAttribute('aria-label', piece ? `${piece.color} ${piece.type} on ${squareName}` : squareName);
+          cell.dataset.square = squareName;
+          if (selected === squareName) cell.classList.add('selected');
+          if (gameState.lastMove && (gameState.lastMove.from === squareName || gameState.lastMove.to === squareName)) cell.classList.add('last');
+          if (targets.includes(squareName)) cell.classList.add('target');
+          if (piece) {
+            cell.classList.add('has-piece');
+            const glyph = document.createElement('span');
+            glyph.className = `piece ${piece.color}-piece`;
+            glyph.textContent = unicode[piece.color][piece.type];
+            cell.appendChild(glyph);
+          }
+          cell.addEventListener('click', () => handleSquare(squareName));
+          boardEl.appendChild(cell);
+        }
+      }
+      function handleSquare(square) {
+        if (!gameState || !socket || !socket.connected || gameState.turn !== mySide) return;
+        const piece = gameState.pieces.find(item => item.square === square);
+        const selectedMoves = gameState.legalMoves.filter(move => move.from === selected && move.to === square);
+        if (selected && selectedMoves.length) {
+          let promotion = 'q';
+          if (selectedMoves.some(move => move.promotion)) {
+            const choice = (window.prompt('Promote to queen, rook, bishop, or knight? (q/r/b/n)', 'q') || 'q').toLowerCase();
+            promotion = ['q','r','b','n'].includes(choice) ? choice : 'q';
+          }
+          socket.emit('game:move', { from: selected, to: square, promotion }, result => {
+            if (result && !result.ok) document.getElementById('game-status').textContent = result.error;
+          });
+          selected = null;
+          renderBoard();
+          return;
+        }
+        if (piece && piece.color === mySide && gameState.legalMoves.some(move => move.from === square)) selected = square;
+        else selected = null;
+        renderBoard();
+      }
+      function returnHome(notifyServer = true) {
+        if (gameOverTimer) clearTimeout(gameOverTimer);
+        gameOverTimer = null;
+        if (notifyServer && socket && socket.connected) socket.emit('game:exit');
+        if (socket) { socket.disconnect(); socket = null; }
+        gameState = null;
+        mySide = null;
+        selected = null;
+        gameScreen.hidden = true;
+        home.hidden = false;
+        joinForm.hidden = true;
+        codeInput.value = '';
+        showStatus('');
+      }
+      document.getElementById('create').addEventListener('click', () => {
+        showStatus('Connecting to game server…');
+        const connection = connect();
+        if (!connection) return;
+        connection.emit('game:create', {}, result => {
+          if (!result || !result.ok) showStatus('Could not create a game. Please try again.');
+          else { mySide = result.side; gameState = { code: result.code, side: result.side, pieces: [], legalMoves: [], turn: 'white' }; showGame(); document.getElementById('game-status').textContent = 'Waiting for the other player…'; showStatus(''); }
+        });
+      });
+      document.getElementById('show-join').addEventListener('click', () => { joinForm.hidden = !joinForm.hidden; codeInput.focus(); });
+      document.getElementById('join').addEventListener('click', () => {
+        const code = codeInput.value.trim().toUpperCase();
+        if (code.length !== 6) { showStatus('Enter the 6-character game code.'); return; }
+        showStatus('Connecting to game server…');
+        const connection = connect();
+        if (!connection) return;
+        connection.emit('game:join', code, result => {
+          if (!result || !result.ok) showStatus(result && result.error ? result.error : 'Could not join that game.');
+          else showStatus('');
+        });
+      });
+      document.getElementById('leave').addEventListener('click', () => returnHome(true));
+      codeInput.addEventListener('keydown', event => { if (event.key === 'Enter') document.getElementById('join').click(); });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "chess-xox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time two-player chess site for Render or GitHub Pages with a Render socket server.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
